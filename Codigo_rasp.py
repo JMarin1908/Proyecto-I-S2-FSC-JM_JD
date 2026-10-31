@@ -13,7 +13,9 @@ in1 = Pin(17, Pin.OUT)
 in2 = Pin(18, Pin.OUT)
 
 # ---------- Motor 2: dirección (derecha / izquierda) ----------
-enb = Pin(19, Pin.OUT)
+enb = PWM(Pin(19))          # ENB con PWM para poder mantener la posición con menos potencia
+enb.freq(1000)
+enb.duty_u16(0)
 in3 = Pin(20, Pin.OUT)
 in4 = Pin(21, Pin.OUT)
 
@@ -35,6 +37,8 @@ ldr = ADC(26)               # GP26 = ADC0 (verificar con el plano)
 NIVELES = {1: 32000, 2: 43000, 3: 54000, 4: 65535}
 
 T_DIR = 0.4          # segundos que gira el motor de dirección por cada paso
+DUTY_GIRO = 65535       # potencia del motor de dirección al moverse
+DUTY_MANTENER = 55000   # potencia para sostener las llantas giradas 
 T_FRENO = 1000       # ms que duran las luces de freno al detenerse
 UMBRAL_LDR = 20000   # por debajo de este valor se considera "oscuro"
 
@@ -75,8 +79,8 @@ def actualizar_luces():
     byte = 0
     freno_activo = utime.ticks_diff(freno_hasta, utime.ticks_ms()) > 0
 
-    # Luces de freno (QA y QB): manual, por LDR o al frenar
-    if lb or oscuro or freno_activo:
+
+if lb or oscuro or freno_activo:
         byte |= LUZ_FRENO
     # Luces frontales / retroceso (QC y QD): manual, por LDR o al retroceder
     if lf or oscuro or potencia < 0:
@@ -141,23 +145,31 @@ def set_pwm(valor):
 # =====================================================
 #  MOTOR 2: DIRECCIÓN
 # =====================================================
-def mover_direccion(sentido, tiempo):
-    """sentido: 1 = derecha, -1 = izquierda."""
+
+def aplicar_direccion(sentido, duty):
+    """sentido: 1 = derecha, -1 = izquierda, 0 = motor libre."""
     if sentido == 1:
         in3.value(1)
         in4.value(0)
-    else:
+        enb.duty_u16(duty)
+    elif sentido == -1:
         in3.value(0)
         in4.value(1)
-    enb.value(1)
-    utime.sleep(tiempo)
-    in3.value(0)
-    in4.value(0)
-    enb.value(0)
+        enb.duty_u16(duty)
+    else:
+        in3.value(0)
+        in4.value(0)
+        enb.duty_u16(0)
 
+def mover_direccion(sentido, tiempo):
+    """Gira el motor de dirección durante 'tiempo' segundos (sin soltarlo al final)."""
+    aplicar_direccion(sentido, DUTY_GIRO)
+    utime.sleep(tiempo)
 
 def set_dir(valor):
-    """-1 izquierda, 0 recto, 1 derecha, 2 retroceder."""
+    """-1 izquierda, 0 recto, 1 derecha, 2 retroceder.
+    Si la dirección queda a la izquierda o a la derecha, el motor se mantiene
+    energizado para que las llantas no regresen solas al centro."""
     global dir_actual
     if valor == 2:
         set_pwm(-2)                      # retroceder
@@ -173,6 +185,11 @@ def set_dir(valor):
         mover_direccion(1 if pasos > 0 else -1, abs(pasos) * T_DIR)
         dir_actual = valor
 
+    # Mantener o soltar el motor según la posición final
+    if valor == 0:
+        aplicar_direccion(0, 0)              # centro: se suelta el motor
+    else:
+        aplicar_direccion(valor, DUTY_MANTENER)   # girado: se sigue empujando
 
 # =====================================================
 #  PATRONES
@@ -354,9 +371,7 @@ except KeyboardInterrupt:
 finally:
     timer.deinit()
     set_pwm(0)
-    in3.value(0)
-    in4.value(0)
-    enb.value(0)
+    aplicar_direccion(0, 0)      # libera el motor de dirección
     # Apagar luces
     lf = lb = ll = lr = ldr_auto = 0
     oscuro = False
