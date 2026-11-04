@@ -48,7 +48,7 @@ REP_ZIGZAG = 4       # cantidad de tramos del zig zag
 
 # Bits de salida del 74LS164 (QA = bit 0 ... QH = bit 7)
 LUZ_FRENO = (1 << 0) | (1 << 1)      # QA y QB
-LUZ_RETRO = (1 << 2) | (1 << 3)      # QC y QD
+LUZ_FRONTALES = (1 << 2) | (1 << 3)      # QC y QD
 DIR_IZQ = 1 << 4                     # QE
 DIR_DER = 1 << 5                     # QF
 
@@ -80,11 +80,11 @@ def actualizar_luces():
     freno_activo = utime.ticks_diff(freno_hasta, utime.ticks_ms()) > 0
 
 
-if lb or oscuro or freno_activo:
+    if lb or oscuro or freno_activo:
         byte |= LUZ_FRENO
     # Luces frontales / retroceso (QC y QD): manual, por LDR o al retroceder
     if lf or oscuro or potencia < 0:
-        byte |= LUZ_RETRO
+        byte |= LUZ_FRONTALES
     # Direccionales (QE y QF) intermitentes
     if ll and parpadeo:
         byte |= DIR_IZQ
