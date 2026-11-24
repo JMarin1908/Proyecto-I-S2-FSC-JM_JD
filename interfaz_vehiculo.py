@@ -1,6 +1,6 @@
 """
 Interfaz gráfica para controlar el vehículo (Raspberry Pi Pico W) por WiFi.
-La PC actúa como servidor TCP (como en server.py) y la Pico se conecta como cliente.
+La PC actúa como servidor TCP  y la Pico se conecta como cliente.
 
 Ejecutar:  python interfaz_vehiculo.py
 Requiere:  Python 3 con tkinter (Pillow opcional para fotos JPG)
@@ -27,11 +27,10 @@ PORT = 8001 #Configurar a conveniencia (debe coincidir con la Pico)
 
 NOMBRE_PROGRAMA = "Control de Vehículo WiFi"
 VERSION = "1.1"
-INSTITUCION = "Nombre de la institución"          # <-- completar
-INTEGRANTES = [                                    # <-- completar
-    {"nombre": "Integrante 1", "foto": "foto1.png"},
-    {"nombre": "Integrante 2", "foto": "foto2.png"},
-    {"nombre": "Integrante 3", "foto": "foto3.png"},
+INSTITUCION = "Instituto Tecnologico de Costa Rica"         
+INTEGRANTES = [                                    
+    {"nombre": "Jose Matías Marín Vega", "foto": "Proyecto Parte 2 FSC S2 JM y JD\FotoJose.png"},
+    {"nombre": "Josue David Gonzalez Urbina", "foto": "Proyecto Parte 2 FSC S2 JM y JD\FotoJosue.png"},
 ]
 
 # ---------- Paleta (cámbiala aquí para ajustar el estilo) ----------
@@ -606,8 +605,9 @@ class App(tk.Tk):
     def mostrar_about(self):
         win = tk.Toplevel(self)
         win.title("Acerca de")
+        win.transient(self)
         win.configure(bg=C["panel"])
-        win.resizable(False, False)
+        win.resizable(True, True)
 
         tk.Label(win, text=NOMBRE_PROGRAMA, bg=C["panel"], fg=C["acento"],
                  font=("Segoe UI", 15, "bold")).pack(pady=(12, 0))
@@ -621,7 +621,7 @@ class App(tk.Tk):
         for i, p in enumerate(INTEGRANTES):
             col = tk.Frame(f_int, bg=C["panel"])
             col.grid(row=0, column=i, padx=8)
-            foto = self.cargar_foto(p["foto"])
+            foto = self.cargar_foto(p.get("foto"))
             if foto:
                 tk.Label(col, image=foto, bg=C["panel"]).pack()
             else:
@@ -643,6 +643,8 @@ class App(tk.Tk):
         self.boton(win, "Cerrar", win.destroy).pack(pady=(0, 12))
 
     def cargar_foto(self, ruta):
+        if not ruta:
+            return None
         try:
             try:
                 from PIL import Image, ImageTk
