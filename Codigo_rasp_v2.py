@@ -142,9 +142,9 @@ def actualizar_luces():
             byte |= LUZ_FRENO
     else:
         freno_activo = utime.ticks_diff(freno_hasta, utime.ticks_ms()) > 0
-        if lb or oscuro or freno_activo:
+        if lb or oscuro or freno_activo or potencia < 0:
             byte |= LUZ_FRENO
-        if lf or oscuro or potencia < 0:
+        if lf or oscuro:
             byte |= LUZ_FRONTALES
         if ll and parpadeo:
             byte |= DIR_IZQ
